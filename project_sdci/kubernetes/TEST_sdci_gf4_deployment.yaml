@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdci-gf4
+spec:
+  selector:
+    matchLabels:
+      app: sdci-gf4
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sdci-gf4
+    spec:
+      containers:
+      - name: sdci-gf4-container
+        image: queenie2002/sdci-project:gf
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ZONE_NUMBER
+          value: "4"
+        - name: REMOTE_IP_GI
+          value: "sdci-frService-clusterip"
