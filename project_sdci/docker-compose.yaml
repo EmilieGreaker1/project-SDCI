@@ -1,0 +1,63 @@
+services:
+
+  gi:
+    image: sdci-gi-image
+    container_name: sdci-gi-container
+    build:
+      context: ./intermediate_gateway
+      dockerfile: Dockerfile
+    ports:
+      - 8181:8181
+    depends_on:
+      - server
+
+  server:
+    image: sdci-server-image
+    container_name: sdci-server-container
+    build:
+      context: ./application_+_server
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+
+  gf1:
+    image: sdci-gf-image
+    container_name: sdci-gf1-container
+    build:
+      context: ./device_+_final_gateway
+      dockerfile: Dockerfile
+    ports:
+      - 8282:8282
+      - 9001:9001
+    depends_on:
+      - gi
+    environment:
+      - ZONE_NUMBER=1
+
+  gf2:
+    image: sdci-gf-image:zone2
+    container_name: sdci-gf2-container
+    build:
+      context: ./device_+_final_gateway
+      dockerfile: Dockerfile
+    ports:
+      - 8282:8282
+      - 9001:9001
+    depends_on:
+      - gi
+    environment:
+      - ZONE_NUMBER=2
+
+  gf3:
+    image: sdci-gf-image:zone3
+    container_name: sdci-gf3-container
+    build:
+      context: ./device_+_final_gateway
+      dockerfile: Dockerfile
+    ports:
+      - 8282:8282
+      - 9001:9001
+    depends_on:
+      - gi
+    environment:
+      - ZONE_NUMBER=3

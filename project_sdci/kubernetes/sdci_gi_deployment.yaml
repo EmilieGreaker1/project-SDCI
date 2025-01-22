@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdci-gi
+spec:
+  selector:
+    matchLabels:
+      app: sdci-gi
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sdci-gi
+    spec:
+      containers:
+      - name: sdci-gi-container
+        image: queenie2002/sdci-project:gi
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: REMOTE_IP_SERVER
+          value: "sdci-server-clusterip"
+

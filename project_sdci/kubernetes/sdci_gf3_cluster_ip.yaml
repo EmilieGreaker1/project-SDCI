@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdci-gf3-clusterip
+spec:
+  selector:
+    app: sdci-gf3
+  ports:
+  - protocol: TCP
+    name: http    
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
