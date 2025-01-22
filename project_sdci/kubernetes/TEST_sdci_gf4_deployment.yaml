@@ -22,4 +22,4 @@ spec:
         - name: ZONE_NUMBER
           value: "4"
         - name: REMOTE_IP_GI
-          value: "sdci-frService-clusterip"
+          value: "sdci-frservice-clusterip"

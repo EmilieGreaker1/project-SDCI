@@ -5,7 +5,6 @@ ENV REMOTE_IP_GI = $REMOTE_IP_GI
 EXPOSE 8080
 
 RUN apk add --no-cache \
-    wget \
     curl 
     
 WORKDIR /app

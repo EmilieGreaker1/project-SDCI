@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: sdci-frService-clusterip
+  name: sdci-frservice-clusterip
 spec:
   selector:
-    app: sdci-frService
+    app: sdci-frservice
   ports:
   - protocol: TCP
     name: http    

@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sdci-frService
+  name: sdci-frservice
 spec:
   selector:
     matchLabels:
-      app: sdci-frService
+      app: sdci-frservice
   replicas: 1
   template:
     metadata:
       labels:
-        app: sdci-frService
+        app: sdci-frservice
     spec:
       containers:
-      - name: sdci-frService-container
-        image: queenie2002/sdci-project:gf
+      - name: sdci-frservice-container
+        image: queenie2002/sdci-project:frservice
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
