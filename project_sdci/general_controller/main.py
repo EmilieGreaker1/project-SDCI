@@ -12,19 +12,46 @@ import time
 import threading
 import random
 import sys
+import subprocess
+
+def run_command(command):
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        return True, result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        return False, e.stderr.strip()
 
 # the analyze, plan, execute phases are implemented in separate functions
 def analyze():
     print("Analyze")
     time.sleep(1)
 
-def plan():
-    print("Plan")
-    time.sleep(1)
+def plan(RFC):
+    if RFC["saturation"] and not RFC["frservice"]:
+        return "reduce flow"
+    elif not RFC["saturation"] and RFC["frservice"]:
+        return "reset flow"
+    else:
+        return None
+        
+def execute(executionPlan):
+    if executionPlan == "reduce flow":
+        # We deploy a pod of our flow reduction service
+        run_command("kubectl scale --replicas=1 deployment/sdci-frservice")
+        # We apply the routing virtual service to reroute the data packages from the non-critical zones to our flow reduction service
+        run_command("kubectl apply -f kubernetes/sdci_routing_virtualservice.yaml")
+    elif executionPlan == "reset flow":
+        # We delete the routing virtual service to get back to the initial routing
+        run_command("kubectl delete virtualservice sdci-gf-routing")
+        # We stop deploying our flow reduction service
+        run_command("kubectl scale --replicas=0 deployment/sdci-frservice")
 
-def execute():
-    print("Execute")
-    time.sleep(1)   
 
 # the Monitor class
 class Monitor(threading.Thread):
@@ -48,16 +75,39 @@ class Monitor(threading.Thread):
 def main():
     monitor = Monitor()
     monitor.start()
+    up=True
+
+    RFC = {
+    "saturation": True,
+    "frservice": False
+    }
+
     while True:
-        while monitor.alerts == 0:
-            time.sleep(1)
-        print("Analyze")
-        time.sleep(1)
+        #while monitor.alerts == 0:
+        #    time.sleep(1)
+        #print("Analyze")
+        #RFC = analyze()
+
+        if up :
+            RFC["saturation"] = True 
+            RFC["frservice"] = False
+        else :
+            RFC["saturation"] = False 
+            RFC["frservice"] = True
+
+
         print("Plan")
-        time.sleep(1)
+        executionPlan = plan(RFC)
+
         print("Execute")
-        time.sleep(1)
-        monitor.alerts -= 1
+        execute(executionPlan)
+
+        #monitor.alerts -= 1
+        print("IM UP ",up)
+        up = not up
+        time.sleep(100)
+
+
     monitor.stop()
     monitor.join()
 
