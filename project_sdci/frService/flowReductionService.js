@@ -1,5 +1,5 @@
 /**
- *  Author: Emilie GREAKER greaker@insa-toulouse.fr
+ *  Author: Emilie Greaker greaker@insa-toulouse.fr
  *  Author: Y-Quynh Nguyen yqnguyen@insa-toulouse.fr
  *  File : saturationService.js
  *  Version : 0.1.0
@@ -11,9 +11,11 @@ app.use(express.json()) // for parsing application/json
 var request = require('request');
 var argv = require('yargs').argv;
 
+// Who we are and who we're sending too
 var LOCAL_ENDPOINT = {IP : argv.local_ip, PORT : argv.local_port, NAME : argv.local_name};
 var REMOTE_ENDPOINT = {IP : argv.remote_ip, PORT : argv.remote_port, NAME : argv.remote_name};
 
+// HTTP STATUS
 const E_OK              = 200;
 const E_CREATED         = 201;
 const E_NOT_FOUND       = 404;
@@ -66,6 +68,7 @@ function doPOST(uri, body, onResponse) {
     request({method: 'POST', uri: uri, json : body}, onResponse); 
 }
 
+// POST method: to register a gateway
 app.post('/gateways/register', function(req, res) {
     console.log(req.body);
     var result = addNewGateway(req.body);
@@ -75,6 +78,7 @@ app.post('/gateways/register', function(req, res) {
         res.sendStatus(E_ALREADY_EXIST);  
  });
 
+// POST method: to register a device
 app.post('/devices/register', function(req, res) {
     console.log(req.body);
     doPOST(
@@ -87,6 +91,7 @@ app.post('/devices/register', function(req, res) {
     )
  });
 
+// POST method: to treat incoming data, we send a package out of 2 with the mean value
  app.post('/device/:dev/data', function(req, res) {
     console.log(req.body);
     var dev = req.params.dev;
@@ -128,6 +133,7 @@ app.post('/devices/register', function(req, res) {
     }
 });
 
+// GET method: returns the list of gateways
 app.get('/gateways', function(req, res) {
     console.log(req.body);
     let resObj = [];
@@ -136,6 +142,8 @@ app.get('/gateways', function(req, res) {
     });
     res.send(resObj);
 });
+
+// GET method: returns a specific gateway
 app.get('/gateway/:gw', function(req, res) {
     console.log(req.body);
     var gw = req.params.gw;
@@ -150,6 +158,7 @@ app.get('/gateway/:gw', function(req, res) {
     else
         res.sendStatus(E_NOT_FOUND);
 });
+
 
 app.get('/ping', function(req, res) {
     console.log(req.body);
