@@ -21,27 +21,6 @@ const E_CREATED         = 201;
 const E_NOT_FOUND       = 404;
 const E_ALREADY_EXIST   = 500;
 
-// Database of the gateways
-var db = {
-        gateways : new Map()
-    };
-
-// Add new gateway to database
-function addNewGateway(gw) {
-    var res = -1;
-    if (!db.gateways.get(gw.Name)) {
-        db.gateways.set(gw.Name, gw);
-        res = 0;
-    }
-    return res;
-}
-
-// Remove gateway from database
-function removeGateway(gw) {
-    if (db.gateways.get(gw.Name))
-        db.gateways.delete(gw.Name);
-}
-
 // Database of the packages
 var db_package = {
     packages : new Map()
@@ -71,11 +50,14 @@ function doPOST(uri, body, onResponse) {
 // POST method: to register a gateway
 app.post('/gateways/register', function(req, res) {
     console.log(req.body);
-    var result = addNewGateway(req.body);
-    if (result === 0)
-        res.sendStatus(E_CREATED);  
-    else
-        res.sendStatus(E_ALREADY_EXIST);  
+    doPOST(
+        'http://' + REMOTE_ENDPOINT.IP + ':' +REMOTE_ENDPOINT.PORT + '/gateways/register',
+        req.body,
+        function(error, response, respBody) {
+            console.log(respBody);
+            res.sendStatus(E_OK); 
+        }
+    )
  });
 
 // POST method: to register a device
@@ -135,42 +117,40 @@ app.post('/devices/register', function(req, res) {
 
 // GET method: returns the list of gateways
 app.get('/gateways', function(req, res) {
-    console.log(req.body);
-    let resObj = [];
-    db.gateways.forEach((v,k) => {
-        resObj.push(v);
+    console.log('Fetching gateways from remote endpoint');
+
+    const remoteUrl = `http://${REMOTE_ENDPOINT.IP}:${REMOTE_ENDPOINT.PORT}/gateways`;
+
+    return request.get(remoteUrl, function(error, response, body) {
+        if (error) {
+            console.error('Error fetching gateways:', error);
+            res.status(500).send('Error connecting to remote server');
+            return;
+        }
+        
+        console.log('Response from remote:', body);
+        res.status(response.statusCode).send(body);
     });
-    res.send(resObj);
 });
 
 // GET method: returns a specific gateway
 app.get('/gateway/:gw', function(req, res) {
     console.log(req.body);
     var gw = req.params.gw;
-    var gateway = db.gateways.get(gw);
-    if (gateway) {
-        register();
-        app.listen(LOCAL_ENDPOINT.PORT , function () {
-            console.log(LOCAL_ENDPOINT.NAME + ' listening on : ' + LOCAL_ENDPOINT.PORT );
-        });
-        res.status(E_OK).send(JSON.stringify(gateway));
-    }
-    else
-        res.sendStatus(E_NOT_FOUND);
-});
 
+    const remoteUrl = `http://${REMOTE_ENDPOINT.IP}:${REMOTE_ENDPOINT.PORT}/gateways/`+ gw;
 
-app.get('/ping', function(req, res) {
-    console.log(req.body);
-    res.status(E_OK).send({pong: Date.now()});
-});
+    return request.get(remoteUrl, function(error, response, body) {
+        if (error) {
+            console.error('Error fetching gateways:', error);
+            res.status(500).send('Error connecting to remote server');
+            return;
+        }
+        
+        console.log('Response from remote:', body);
+        res.status(response.statusCode).send(body);
+    });
 
-app.get('/health', function(req, res) {
-    console.log(req.body);
-    si.currentLoad((d) => {
-        console.log(d);
-        res.status(E_OK).send(JSON.stringify(d));
-    })
 });
 
 app.listen(LOCAL_ENDPOINT.PORT , function () {
