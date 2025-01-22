@@ -39,6 +39,31 @@ function removeGateway(gw) {
     if (db.gateways.get(gw.Name))
         db.gateways.delete(gw.Name);
 }
+
+// Database of the packages
+var db_package = {
+    packages : new Map()
+};
+
+// Add new package to database
+function addNewPackage(pk) {
+    var res = -1;
+    if (!db_package.packages.get(pk.Name + "_package_1")) {
+        db_package.packages.set(pk.Name + "_package_1", pk);
+        res = 0;
+    }
+    else if (!db_package.packages.get(pk.Name + "_package_2")) {
+        db_package.packages.set(pk.Name + "_package_2", pk);
+        res = 0;
+    }
+    return res;
+}
+
+// Remove package from database
+function removePackage(pk_name) {
+    if (db_package.packages.get(pk_name))
+        db_package.packages.delete(pk_name);
+}
     
 // Function to POST
 function doPOST(uri, body, onResponse) {
@@ -69,15 +94,55 @@ app.post('/devices/register', function(req, res) {
  app.post('/device/:dev/data', function(req, res) {
     console.log(req.body);
     var dev = req.params.dev;
-    doPOST(
-        'http://' + REMOTE_ENDPOINT.IP + ':' +REMOTE_ENDPOINT.PORT + '/device/' + dev + '/data',
-        req.body,
-        function(error, response, respBody) {
-            console.log(respBody);
-            res.sendStatus(E_OK); 
+
+    var result = addNewpackage(req.body);
+    if (result === 0) {
+        res.sendStatus(E_CREATED);  
+    }
+    else {
+        // There are already two packages stored for this device
+
+        // Get the two stored packages from the package db
+        var package1 = db_package.packages.get(req.body.Name + "_package_1");
+        var package2 = db_package.packages.get(req.body.Name + "_package_2");
+
+        // Calculate the data mean of the two packages
+        var meanData = (package1.Data + package2.Data) / 2;
+
+        // Construct the new package
+        const newpackageBody = {
+            Name: req.body.Name,
+            Data: meanData,
+            CreationTime: package2.CreationTime,
+            ReceptionTime: null,
+        };
+
+        // Send the new package to the remote endpoint (the GI) transparently from the device
+        doPOST(
+            'http://' + REMOTE_ENDPOINT.IP + ':' + REMOTE_ENDPOINT.PORT + '/device/' + dev + '/data',
+            newpackageBody,
+            function(error, response, respBody) {
+                console.log(respBody);
+                res.sendStatus(E_OK); 
+            }
+        )
+
+        // Delete the previous two packages for this device
+        removePackage(package1.Name);
+        removePackage(package2.Name);
+
+        // Add the incoming package to the package db
+        var result = addNewpackage(req.body);
+        if (result === 0) {
+            res.sendStatus(E_CREATED);  
         }
-    )
+        else {
+            // If this happens at this point, there is something seriously wrong...
+            res.sendStatus(E_ALREADY_EXIST); 
+        }
+    }
 });
+
 app.get('/gateways', function(req, res) {
     console.log(req.body);
     let resObj = [];
@@ -90,12 +155,13 @@ app.get('/gateway/:gw', function(req, res) {
     console.log(req.body);
     var gw = req.params.gw;
     var gateway = db.gateways.get(gw);
-    if (gateway)
+    if (gateway) {
         register();
         app.listen(LOCAL_ENDPOINT.PORT , function () {
             console.log(LOCAL_ENDPOINT.NAME + ' listening on : ' + LOCAL_ENDPOINT.PORT );
         });
         res.status(E_OK).send(JSON.stringify(gateway));
+    }
     else
         res.sendStatus(E_NOT_FOUND);
 });
@@ -112,50 +178,6 @@ app.get('/health', function(req, res) {
         res.status(E_OK).send(JSON.stringify(d));
     })
 });
-
-
-
-//FROM HERE ON, THE CHAT GPT THING
-let previousPacket = null;
-
-app.post('/reducePacketFlow', async (req, res) => {
-    try {
-        const currentPacket = req.body;
-
-        if (!currentPacket || typeof currentPacket.Data !== 'number') {
-            return res.status(400).send('Invalid packet format');
-        }
-
-        // Calculate the mean if a previous packet exists
-        if (previousPacket) {
-            const meanData = (previousPacket.Data + currentPacket.Data) / 2;
-
-            const newPacket = {
-                Name: currentPacket.Name,
-                Data: meanData,
-                CreationTime: Date.now(),
-                ReceptionTime: null,
-            };
-            axios
-            // Forward the new packet to the next service
-            try {
-                await axios.post('http://service-b.<namespace>.svc.cluster.local/process', newPacket);
-                console.log('Forwarded packet:', newPacket);
-            } catch (error) {
-                console.error('Error forwarding packet:', error.message);
-            }
-        }
-
-        // Store the current packet for the next calculation
-        previousPacket = currentPacket;
-
-        res.status(200).send('Packet processed');
-    } catch (error) {
-        console.error('Error processing packet:', error.message);
-        res.status(500).send('Internal server error');
-    }
-});
-
 
 app.listen(LOCAL_ENDPOINT.PORT , function () {
     console.log(LOCAL_ENDPOINT.NAME + ' listening on : ' + LOCAL_ENDPOINT.PORT );
