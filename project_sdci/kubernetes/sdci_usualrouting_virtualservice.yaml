@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: sdci-gf-routing
+  name: sdci-gf2-routing
 spec:
   hosts:
   - sdci-gi-clusterip
@@ -9,8 +9,6 @@ spec:
   - match:
     - sourceLabels:
         app: sdci-gf2
-    - sourceLabels:
-        app: sdci-gf3
     route:
     - destination:
         host: sdci-frservice-clusterip
