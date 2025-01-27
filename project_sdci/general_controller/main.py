@@ -133,7 +133,7 @@ class Monitor(threading.Thread):
 
     def is_deployment_up(self, deployment_name, namespace="default"):
         # Get the Deployment
-        apps_v1_api = client.AppsV1Api()  
+        apps_v1_api = client.AppsV1Api()
         deployment = apps_v1_api.read_namespaced_deployment(deployment_name, namespace=namespace)
 
         # Check if at least one pod is available
@@ -174,12 +174,27 @@ class Monitor(threading.Thread):
     def stop(self):
         self.running = False
 
-# the main program
-def main():
+def startMonitoring():
     monitor = Monitor()
     monitor.start()
+    return monitor
 
-    while True:
+def stopMonitoring(monitor):
+    monitor.stop()
+    monitor.join()   
+    
+def startAdaptation():
+    execute("reduce flow")
+
+def stopAdaptation():
+    execute("reset flow")
+
+def startMapekLoop():
+    monitor = startMonitoring()
+    return monitor
+
+def runMapekLoop(monitor):
+    while monitor.running:
         # If no alert from the monitor, we wait for 3 seconds before checking again if we have new alerts
         while monitor.alerts == 0:
             time.sleep(3)
@@ -198,8 +213,19 @@ def main():
         monitor.alerts -= 1
         print("What Action Am I Taking ? ",executionPlan)
 
-    monitor.stop()
-    monitor.join()
+def stopMapekLoop(monitor):
+    stopMonitoring(monitor)
+
+# the main program
+def main():
+    monitor = startMapekLoop()
+    runMapekLoop(monitor)
+
+    time.sleep(60)
+    
+    stop = True
+    if (stop):
+        stopMapekLoop(monitor)
 
 if __name__ == "__main__":
     main()
