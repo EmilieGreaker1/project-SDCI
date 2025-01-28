@@ -1,6 +1,6 @@
 Presented by Emilie GREAKER and Y-Quynh NGUYEN as our 5th year INSA Toulouse, SDCI minor project.
 
-This project revolved around resolving an issue for an application architecture using Kubernetes and Istio. The mentioned issue for this specific project, was the saturation of the intermediate gateway.
+This project revolved around resolving an issue for an application architecture using Kubernetes and Istio. The mentioned issue for this specific project was the saturation of the intermediate gateway. Our specific use case to resolve this issue included deploying a flow reduction service, when needed, to reduce the number of packages arriving from non-critical zones. 
 
 ![image](https://github.com/user-attachments/assets/4d10207a-c532-4cfc-b316-d0c153da18cf)
 
