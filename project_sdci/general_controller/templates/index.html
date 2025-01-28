@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDCI Project - Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header, footer {
+            background-color: #333;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .card {
+            width: 90%;
+            max-width: 600px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #e3e3e3;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .actionButton {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #3a3d3f;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .actionButton:hover {
+            background-color: #262829;
+        }
+
+        .statusText {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>SDCI Project - Controller Interface</h1>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="section mapeContent">
+                <button id="mapeButton" class="actionButton">Start MAPE</button>
+                <div id="mapeDiv" class="statusText">MAPE loop not started</div>
+            </div>
+            <div class="section monitorContent">
+                <button id="monitorButton" class="actionButton">Start Monitoring</button>
+                <div id="monitorDiv" class="statusText">Monitoring not started</div>
+            </div>
+            <div class="section adaptationContent">
+                <button id="adaptationButton" class="actionButton">Start Adaptation</button>
+                <div id="adaptationDiv" class="statusText">Adaptation not started</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>GREAKER Emilie, NGUYEN Y-Quynh - PROMO 58</p>
+    </footer>
+    <script>
+        
+        var mape = false
+        const mapeButton = document.getElementById('mapeButton');
+        const mapeDiv = document.getElementById('mapeDiv');
+
+        mapeButton.addEventListener('click', async function() {
+            if (!mape) {
+                mape = true;
+                mapeButton.innerText = 'Stop MAPE loop';
+                streamMape();
+
+                fetch('/start/mape', {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => console.log(data))
+                    .catch(error => console.error('Error:', error));
+            }
+            else {
+                mape = false;
+                mapeButton.innerText = 'Start MAPE loop';
+                mapeDiv.innerText = 'MAPE loop stopped';
+
+                fetch('/stop/mape', {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => console.log(data))
+                    .catch(error => console.error('Error:', error));
+            }
+        });
+
+        function streamMape() {
+            const eventSource = new EventSource('/stream_mape');
+
+            eventSource.onmessage = function(event) {
+                mapeDiv.innerText = event.data;
+            };
+
+            eventSource.onerror = function() {
+                mapeDiv.innerText = 'Toggling MAPE Loop...';
+            };
+        }
+
+        var monitoring = false
+        const monitorButton = document.getElementById('monitorButton');
+        const monitorDiv = document.getElementById('monitorDiv');
+
+        monitorButton.addEventListener('click', async function() {
+            const stopMonitoring = monitoring ? 'false' : 'true';
+            const response = await fetch('/toggle/monitoring', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stop_monitoring: stopMonitoring })
+            });
+
+            const data = await response.json();
+            if (stopMonitoring === 'true') {
+                monitoring = true;
+                monitorButton.innerText = 'Stop Monitoring';
+                streamMonitor();  // Start receiving updates
+            } else {
+                monitoring = false;
+                monitorButton.innerText = 'Start Monitoring';
+                monitorDiv.innerText = 'Monitor stopped';
+            }
+        });
+
+        function streamMonitor() {
+            const eventSource = new EventSource('/stream_monitor');
+
+            eventSource.onmessage = function(event) {
+                monitorDiv.innerText = event.data;
+            };
+
+            eventSource.onerror = function() {
+                monitorDiv.innerText = 'Error receiving status updates';
+            };
+        }
+
+        var adaptation = false
+        const adaptationButton = document.getElementById('adaptationButton');
+        const adaptationDiv = document.getElementById('adaptationDiv');
+
+        adaptationButton.addEventListener('click', async function() {
+            const stopAdaptation = adaptation ? 'false' : 'true';
+            const response = await fetch('/toggle/adaptation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stop_adaptation: stopAdaptation })
+            });
+
+            const data = await response.json();
+            if (stopAdaptation === 'true') {
+                adaptation = true;
+                adaptationButton.innerText = 'Stop Adaptation';
+                adaptationDiv.innerText = 'Adaptation active';
+            } else {
+                adaptation = false;
+                adaptationButton.innerText = 'Start Adaptation';
+                adaptationDiv.innerText = 'Adaptation stopped, reverting to inital setup';
+            }
+        });
+    </script>    
+</body>

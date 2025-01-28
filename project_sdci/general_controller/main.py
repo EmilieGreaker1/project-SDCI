@@ -4,8 +4,12 @@ import time
 import threading
 import random
 import sys
+import io
 import subprocess
 from kubernetes import client, config
+
+log_stream = io.StringIO()
+sys.stdout = log_stream
 
 # Function to run a command in shell
 def run_command(command):
@@ -54,7 +58,7 @@ def execute(executionPlan):
         # We deploy a pod of our Flow Reduction Service
         run_command("kubectl scale --replicas=1 deployment/sdci-frservice")
         # We apply the routing virtual service to reroute the data packages from the non-critical zones to our flow reduction service
-        run_command("kubectl apply -f kubernetes/sdci_routing_virtualservice.yaml")
+        run_command("kubectl apply -f ../kubernetes/sdci_routing_virtualservice.yaml")
 
     elif executionPlan == "reset flow":
         # We delete the routing virtual service to get back to the initial routing
@@ -179,7 +183,7 @@ class Monitor(threading.Thread):
             # Remember past data
             pastusageCPU_GI = self.usageCPU_GI 
             past_frservice_up = self.frservice_up 
-            time.sleep(1)
+            time.sleep(0.2)
 
     # Stop Monitor
     def stop(self):
@@ -214,7 +218,7 @@ def runMapekLoop(monitor):
     while monitor.running:
         # If no alert from the monitor, we wait for 1 second before checking again if we have new alerts
         while monitor.alerts == 0:
-            time.sleep(1)
+            time.sleep(0.1)
 
         # If we have an alert from the monitor, we start the process of analyzing/planning/executing
         print("Analyze")
@@ -226,6 +230,7 @@ def runMapekLoop(monitor):
         print("Execute")
         execute(executionPlan)
 
+        time.sleep(1)
         # We have dealt with one alert, we keep dealing with the other alerts
         monitor.alerts -= 1
         print("What Action Am I Taking ? ",executionPlan)
@@ -239,9 +244,6 @@ main_stop = False
 def main():
     monitor = startMapekLoop()
     runMapekLoop(monitor)
-
-    while not main_stop:
-        time.sleep(2)
 
     stopMapekLoop(monitor)
 
